@@ -249,6 +249,8 @@ export class EditorLoader {
             const word = context.matchBefore(/(\\[\w\{\}]*)/);
             if (!word || (word.from == word.to && !context.explicit))
                 return null;
+            if (!/^\\[A-Za-z]/.test(word.text))
+                return null;
             else if (word.text.indexOf("{") != -1) {
                 return {
                     from: word.from,
