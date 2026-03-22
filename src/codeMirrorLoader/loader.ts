@@ -277,6 +277,18 @@ export class EditorLoader {
             }
         )).slice(1,-1);
 
+        // 禁用连字
+        const mathOnlyTheme = EditorView.theme({
+            ".cm-line": {
+                "font-variant-ligatures": "none",
+                "font-feature-settings": "\"liga\" 0, \"calt\" 0, \"dlig\" 0"
+            },
+            ".cm-content": {
+                "font-variant-ligatures": "none",
+                "font-feature-settings": "\"liga\" 0, \"calt\" 0, \"dlig\" 0"
+            }
+        });
+
         const startState = EditorState.create({
             doc: docValue,
             extensions: [
@@ -302,6 +314,7 @@ export class EditorLoader {
                 closeBrackets(),
                 bracketMatching(),
                 editorTheme,
+                mathOnlyTheme,
                 mode ? githubDark: githubLight,
                 history()
                 
