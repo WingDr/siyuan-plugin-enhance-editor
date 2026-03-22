@@ -2,7 +2,7 @@ import { EditorView, KeyBinding, keymap } from "@codemirror/view";
 import { Compartment, EditorState, Extension } from "@codemirror/state";
 import { openSearchPanel } from "@codemirror/search";
 import { vscodeKeymap } from "@replit/codemirror-vscode-keymap";
-import { autocompletion, closeBrackets, CompletionContext} from "@codemirror/autocomplete";
+import { autocompletion, closeBrackets, Completion, CompletionContext } from "@codemirror/autocomplete";
 import { html } from "@codemirror/lang-html";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { sql } from "@codemirror/lang-sql";
@@ -16,6 +16,7 @@ import { history, redo, undo } from "@codemirror/commands";
 import * as prettier from "prettier";
 import * as prettierPluginLatex from "prettier-plugin-latex";
 import { createLogger, ILogger } from "../utils/simple-logger";
+import { CompletionFrequencyStore } from "../utils/completion-frequency";
 
 export class EditorLoader {
     private logger: ILogger;
@@ -217,23 +218,53 @@ export class EditorLoader {
         // 实时读取补全
         const editorCompletions = new EditorCompletions(this.plugin);
         const completionList = await editorCompletions.get();
+        const frequencyStore = new CompletionFrequencyStore(this.plugin);
+        await frequencyStore.load();
+        const trackedCompletions = completionList.map(completion => frequencyStore.wrapCompletion(completion));
+
+        const buildSortedOptions = (query: string) => {
+            const filtered = trackedCompletions.filter((completion) => {
+                const label = String(completion.label ?? "");
+                return label.startsWith(query);
+            });
+            const sorted = filtered.sort((a: Completion, b: Completion) => {
+                const freqA = frequencyStore.getCount(String(a.label ?? ""));
+                const freqB = frequencyStore.getCount(String(b.label ?? ""));
+                if (freqA !== freqB) {
+                    return freqB - freqA;
+                }
+                const labelA = String(a.label ?? "");
+                const labelB = String(b.label ?? "");
+                if (labelA !== labelB) {
+                    return labelA.localeCompare(labelB);
+                }
+                const typeA = String(a.type ?? "");
+                const typeB = String(b.type ?? "");
+                return typeA.localeCompare(typeB);
+            });
+            return sorted;
+        };
 
         function mathCompletions(context: CompletionContext) {
             const word = context.matchBefore(/(\\[\w\{\}]*)/);
             if (!word || (word.from == word.to && !context.explicit))
                 return null;
+            if (!/^\\[A-Za-z]/.test(word.text))
+                return null;
             else if (word.text.indexOf("{") != -1) {
                 return {
                     from: word.from,
                     to: word.to + 1,
-                    options: completionList
+                    options: buildSortedOptions(word.text),
+                    filter: false
                 };
             }
             return {
                 from: word.from,
-                options: completionList
+                options: buildSortedOptions(word.text),
+                filter: false
             };
-        }
+        };
 
         const docValue = (await prettier.format(
             "$" + ref_textarea.value + "$",
