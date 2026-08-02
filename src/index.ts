@@ -17,6 +17,7 @@ export default class PluginEnhanceEditor extends Plugin {
     public editorLoader: EditorLoader;
 
     private logger: ILogger;
+    private readonly loadCodeMirrorHandler = this.loadCodeMirror.bind(this);
 
     onload() {
         this.data[STORAGE_NAME] = {
@@ -39,20 +40,22 @@ export default class PluginEnhanceEditor extends Plugin {
     }
 
     onunload() {
-        this.eventBus.off("open-noneditableblock", this.loadCodeMirror.bind(this));
+        this.eventBus.off("open-noneditableblock", this.loadCodeMirrorHandler);
+        this.editorLoader?.destroy();
         this.logger.info("unload");
     }
 
     private initHandleFunctions() {
-        this.eventBus.on("open-noneditableblock", this.loadCodeMirror.bind(this));
+        this.eventBus.on("open-noneditableblock", this.loadCodeMirrorHandler);
     }
 
     private async loadCodeMirror(ev: Event) {
         if (isDev) this.logger.info("事件触发open-noneditableblock, event=>", ev);
-        const protyle_util = (ev as any).detail.toolbar.subElement;
+        const toolbar = (ev as any).detail.toolbar;
+        const protyle_util = toolbar.subElement;
         const blockElement = (ev as any).detail.blockElement;
         const renderElement = (ev as any).detail.renderElement as HTMLElement;
         const renderType = renderElement.getAttribute("data-type");
-        this.editorLoader.loadCodeMirror(protyle_util, renderType);
+        await this.editorLoader.loadCodeMirror(protyle_util, renderType, toolbar);
     }
 }
