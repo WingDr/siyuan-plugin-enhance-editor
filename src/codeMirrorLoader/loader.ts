@@ -117,7 +117,8 @@ export class EditorLoader {
                 "min-width": "268px"
             },
             "&.cm-editor": {
-                "background-color": "transparent"
+                "background-color": "transparent",
+                "font-size": "var(--b3-font-size-editor)"
             },
             ".cm-nonmatchingBracket": {
                 "background-color": "#bb555544 !important"
