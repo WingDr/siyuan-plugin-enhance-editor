@@ -58,6 +58,9 @@ export class EditorLoader {
             return;
         }
 
+        // 源码编辑器属于弹窗 UI，不应直接继承正文编辑器可能非常大的字号。
+        // 在隐藏原生 textarea 前读取其最终字号，以兼容思源缩放、主题和用户样式。
+        const nativeEditorFontSize = window.getComputedStyle(ref_textarea).fontSize || "14px";
         const editorRow = ref_textarea.parentElement;
         const siyuanGutter = editorRow.querySelector(":scope > .protyle-linenumber__rows") as HTMLElement | null;
         const siyuanScroll = editorRow.closest(".protyle-util__scroll") as HTMLElement | null;
@@ -118,13 +121,15 @@ export class EditorLoader {
             },
             "&.cm-editor": {
                 "background-color": "transparent",
-                "font-size": "var(--b3-font-size-editor)"
+                "font-size": nativeEditorFontSize
             },
             ".cm-nonmatchingBracket": {
                 "background-color": "#bb555544 !important"
             },
-            ".cm-tooltips-autocomplete": {
-                "z-index": 2
+            ".cm-tooltip-autocomplete": {
+                "font-size": "var(--b3-font-size, 14px)",
+                "line-height": 1.4,
+                "z-index": 500
             },
             ".cm-gutters": {
                 "background-color": "transparent",
