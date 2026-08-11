@@ -138,8 +138,42 @@ export class EditorLoader {
             }
         });
 
+        const forwardInlineMathArrow = (key: "ArrowLeft" | "ArrowRight") => (view: EditorView) => {
+            if (data_type !== "inline-math" || view.state.selection.ranges.length !== 1) {
+                return false;
+            }
+
+            const selection = view.state.selection.main;
+            if (!selection.empty) {
+                return false;
+            }
+
+            const edge = key === "ArrowLeft" ? 0 : view.state.doc.length;
+            if (selection.head !== edge) {
+                return false;
+            }
+
+            // 思源在原生 textarea 的 keydown 中处理行级公式的退出和光标复位。
+            // CodeMirror 与 textarea 是兄弟节点，因此必须显式同步选区并转发事件。
+            ref_textarea.setSelectionRange(edge, edge);
+            ref_textarea.dispatchEvent(new KeyboardEvent("keydown", {
+                key,
+                bubbles: true,
+                cancelable: true
+            }));
+            return true;
+        };
+
         // 设定快捷键透传
         const keybinds:KeyBinding[] = [
+            {
+                key: "ArrowLeft",
+                run: forwardInlineMathArrow("ArrowLeft")
+            },
+            {
+                key: "ArrowRight",
+                run: forwardInlineMathArrow("ArrowRight")
+            },
             {
                 key: "Mod-f", run: openSearchPanel, scope: "editor search-panel",stopPropagation:true, preventDefault: true
             },
